@@ -20,6 +20,7 @@ import platformDirectives from './directives/index'
 import platformComponents from './components/index'
 
 // install platform specific utils
+// 安装平台特定的utils
 Vue.config.mustUseProp = mustUseProp
 Vue.config.isReservedTag = isReservedTag
 Vue.config.isReservedAttr = isReservedAttr
@@ -27,9 +28,9 @@ Vue.config.getTagNamespace = getTagNamespace
 Vue.config.isUnknownElement = isUnknownElement
 
 // install platform runtime directives & components
+// 安装平台特定的 指令 和 组件
 extend(Vue.options.directives, platformDirectives)
 extend(Vue.options.components, platformComponents)
-
 // install platform patch function
 Vue.prototype.__patch__ = inBrowser ? patch : noop
 

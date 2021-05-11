@@ -26,6 +26,7 @@ import {
  * how to merge a parent option value and a child option
  * value into the final value.
  */
+// 2、合并父子选项值为最终值的策略对象，此时 strats 是一个空对象，因为 config.optionMergeStrategies = Object.create(null)
 const strats = config.optionMergeStrategies
 
 /**
@@ -136,7 +137,6 @@ strats.data = function (
     }
     return mergeDataOrFn(parentVal, childVal)
   }
-
   return mergeDataOrFn(parentVal, childVal, vm)
 }
 
@@ -169,6 +169,7 @@ function dedupeHooks (hooks) {
   return res
 }
 
+//添加相应的生命周期选项的合并策略函数
 LIFECYCLE_HOOKS.forEach(hook => {
   strats[hook] = mergeHook
 })
@@ -195,6 +196,7 @@ function mergeAssets (
   }
 }
 
+//添加指令(directives)、组件(components)、过滤器(filters)等选项的
 ASSET_TYPES.forEach(function (type) {
   strats[type + 's'] = mergeAssets
 })

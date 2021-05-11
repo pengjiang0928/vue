@@ -7,16 +7,77 @@
   <title>Document</title>
 </head>
 <body>
-  <div id="app">{{ message }}</div>
-  <script src="../dist/vue.js"></script>
-
+  <div id="app">
+    <!-- <h1>{{ a }}</h1>
+    <ul>
+      <li v-for="li in b" :key="li">{{ li }}</li>
+    </ul> -->
+  </div>
+  <!-- <script src="../dist/vue.js"></script> -->
   <script>
+    class Observer {
+      constructor(data) {
+        this.walk(data)
+      }
+      walk(data) {
+        let keys = Object.keys(data);
+        for(let i = 0; i < keys.length; i++) {
+          defineReactive(data, keys[i], data[keys[i]])
+        }
+      }
+    }
+
+    function defineReactive (data, key, val) {
+      observer(val)
+      Object.defineProperty(data, key, {
+        enumerable: true,
+        configurable: true,
+        get:function () {
+          console.log('get-'+ key,val);
+          return val
+        },
+        set: function (newVal) {
+          if(val === newVal) {
+            return
+          }
+          val = newVal;
+          console.log('set-'+key,newVal);
+          observer(newVal)
+        }
+      })
+    }
+
+    function observer (data) {
+      if(Object.prototype.toString.call(data) !== '[object Object]') {
+          return
+      }
+      new Observer(data)
+    } 
+
+    const data = {
+      a:1,
+      b: {
+        c:2
+      }
+    }
+    observer(data);
+  </script>
+
+  <!-- <script>
+
+
     var app = new Vue({
       el:'#app',
       data: {
-        message:'hh'
-      }
+        a: 1,
+        b: [1, 2, 3]
+      },
+      // props: {
+      //   name:{
+      //     default:'sas'
+      //   }
+      // }
     })
-  </script>
+  </script> -->
 </body>
 </html>

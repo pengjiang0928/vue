@@ -111,7 +111,6 @@ function initProps (vm: Component, propsOptions: Object) {
 }
 
 function initData (vm: Component) {
-  console.log('initData',vm);
   let data = vm.$options.data
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
@@ -146,7 +145,8 @@ function initData (vm: Component) {
         vm
       )
     } else if (!isReserved(key)) {
-      proxy(vm, `_data`, key)
+      //在对象实例上对数据进行代理
+      proxy(vm, `_data`, key);
     }
   }
   // observe data

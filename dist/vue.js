@@ -1019,7 +1019,6 @@
     shallow
   ) {
     var dep = new Dep();
-
     var property = Object.getOwnPropertyDescriptor(obj, key);
     if (property && property.configurable === false) {
       return
@@ -1161,6 +1160,7 @@
    * how to merge a parent option value and a child option
    * value into the final value.
    */
+  // 2、合并父子选项值为最终值的策略对象，此时 strats 是一个空对象，因为 config.optionMergeStrategies = Object.create(null)
   var strats = config.optionMergeStrategies;
 
   /**
@@ -1271,7 +1271,6 @@
       }
       return mergeDataOrFn(parentVal, childVal)
     }
-
     return mergeDataOrFn(parentVal, childVal, vm)
   };
 
@@ -1304,6 +1303,7 @@
     return res
   }
 
+  //添加相应的生命周期选项的合并策略函数
   LIFECYCLE_HOOKS.forEach(function (hook) {
     strats[hook] = mergeHook;
   });
@@ -1330,6 +1330,7 @@
     }
   }
 
+  //添加指令(directives)、组件(components)、过滤器(filters)等选项的
   ASSET_TYPES.forEach(function (type) {
     strats[type + 's'] = mergeAssets;
   });
@@ -4707,7 +4708,6 @@
   }
 
   function initData (vm) {
-    console.log('initData',vm);
     var data = vm.$options.data;
     data = vm._data = typeof data === 'function'
       ? getData(data, vm)
@@ -4742,6 +4742,7 @@
           vm
         );
       } else if (!isReserved(key)) {
+        //在对象实例上对数据进行代理
         proxy(vm, "_data", key);
       }
     }
@@ -4994,9 +4995,9 @@
         initInternalComponent(vm, options);
       } else {
         vm.$options = mergeOptions(
-          resolveConstructorOptions(vm.constructor),
+          resolveConstructorOptions(vm.constructor),  //返回Vue.options
           options || {},
-          vm
+          vm //this
         );
       }
       /* istanbul ignore else */
@@ -5020,7 +5021,6 @@
         mark(endTag);
         measure(("vue " + (vm._name) + " init"), startTag, endTag);
       }
-
       if (vm.$options.el) {
         vm.$mount(vm.$options.el);
       }
@@ -5083,6 +5083,7 @@
     return modified
   }
 
+  //vue构造函数
   function Vue (options) {
     if (
       !(this instanceof Vue)
@@ -5092,6 +5093,7 @@
     this._init(options);
   }
 
+  //在Vue的原型prototype上挂载方法或者属性
   initMixin(Vue);
   stateMixin(Vue);
   eventsMixin(Vue);
@@ -5469,8 +5471,10 @@
     initAssetRegisters(Vue);
   }
 
-  initGlobalAPI(Vue);
+  //导入在原型上挂载了方法和属性的Vue
 
+  //在构造函数上挂载静态属性和方法
+  initGlobalAPI(Vue);
   Object.defineProperty(Vue.prototype, '$isServer', {
     get: isServerRendering
   });
@@ -9070,6 +9074,7 @@
   /*  */
 
   // install platform specific utils
+  // 安装平台特定的utils
   Vue.config.mustUseProp = mustUseProp;
   Vue.config.isReservedTag = isReservedTag;
   Vue.config.isReservedAttr = isReservedAttr;
@@ -9077,9 +9082,9 @@
   Vue.config.isUnknownElement = isUnknownElement;
 
   // install platform runtime directives & components
+  // 安装平台特定的 指令 和 组件
   extend(Vue.options.directives, platformDirectives);
   extend(Vue.options.components, platformComponents);
-
   // install platform patch function
   Vue.prototype.__patch__ = inBrowser ? patch : noop;
 

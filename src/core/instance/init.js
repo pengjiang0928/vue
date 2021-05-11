@@ -36,9 +36,9 @@ export function initMixin (Vue: Class<Component>) {
       initInternalComponent(vm, options)
     } else {
       vm.$options = mergeOptions(
-        resolveConstructorOptions(vm.constructor),
+        resolveConstructorOptions(vm.constructor),  //返回Vue.options
         options || {},
-        vm
+        vm //this
       )
     }
     /* istanbul ignore else */
@@ -64,7 +64,6 @@ export function initMixin (Vue: Class<Component>) {
       mark(endTag)
       measure(`vue ${vm._name} init`, startTag, endTag)
     }
-
     if (vm.$options.el) {
       vm.$mount(vm.$options.el)
     }
