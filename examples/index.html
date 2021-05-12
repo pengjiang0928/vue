@@ -13,8 +13,54 @@
       <li v-for="li in b" :key="li">{{ li }}</li>
     </ul> -->
   </div>
-  <!-- <script src="../dist/vue.js"></script> -->
-  <script>
+  <script src="../dist/vue.js"></script>
+  <!-- <script>
+    class Dep {
+      static target = null;
+      constructor () {
+        this.subs = []
+      }
+
+      depend () {
+        this.subs.push(Dep.target)
+      }
+
+      notify () {
+        for (let i = 0; i < this.subs.length; i++) {
+          this.subs[i].fn()
+        }
+      }
+    }
+
+    // Dep.target = null
+    
+    function pushTaeget (watch) {
+      Dep.target = watch;
+    }
+
+    const bailRE = /[^\w.$]/
+    function parsePath (path) {
+      if (bailRE.test(path)) {
+        return
+      }
+      const segments = path.split('.')
+      return function (obj) {
+        for (let i = 0; i < segments.length; i++) {
+          if (!obj) return
+          obj = obj[segments[i]]
+        }
+        return obj
+      }
+    }
+    class Watch {
+      constructor(exp,fn) {
+        this.key = exp;
+        this.fn = fn;
+        pushTaeget(this);
+        parsePath(exp).call(data,data) 
+      }
+    }
+
     class Observer {
       constructor(data) {
         this.walk(data)
@@ -29,11 +75,12 @@
 
     function defineReactive (data, key, val) {
       observer(val)
+      let dep = new Dep();
       Object.defineProperty(data, key, {
         enumerable: true,
         configurable: true,
         get:function () {
-          console.log('get-'+ key,val);
+          dep.depend()
           return val
         },
         set: function (newVal) {
@@ -41,8 +88,8 @@
             return
           }
           val = newVal;
-          console.log('set-'+key,newVal);
-          observer(newVal)
+          observer(newVal);
+          dep.notify()
         }
       })
     }
@@ -54,18 +101,31 @@
       new Observer(data)
     } 
 
-    const data = {
+    var data = {
       a:1,
       b: {
         c:2
       }
     }
     observer(data);
-  </script>
+    new Watch('a', () => {
+      console.log(9)
+    })
 
-  <!-- <script>
+    new Watch('a', () => {
+      console.log(90)
+    })
 
+    new Watch('b', () => {
+      console.log(80)
+    })
 
+    new Watch('b.c', () => {
+      console.log(100)
+    })
+  </script> -->
+
+  <script>
     var app = new Vue({
       el:'#app',
       data: {
@@ -78,6 +138,6 @@
       //   }
       // }
     })
-  </script> -->
+  </script>
 </body>
 </html>

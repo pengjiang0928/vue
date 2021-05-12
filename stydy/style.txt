@@ -1,0 +1,172 @@
+////////////////////////初始化
+
+1、Vue 的初始化过程（new Vue(options)）都做了什么？
+    处理组件配置项
+        初始化根组件时进行了选项合并操作，将全局配置合并到根组件的局部配置上
+        初始化每个子组件时做了一些性能优化，将组件配置对象上的一些深层次属性放到 vm.$options 选项中，以提高代码的执行效率
+    初始化组件实例的关系属性，比如 $parent、$children、$root、$refs 等
+    处理自定义事件
+    调用 beforeCreate 钩子函数
+    初始化组件的 inject 配置项，得到 ret[key] = val 形式的配置对象，然后对该配置对象进行响应式处理，并代理每个 key 到 vm 实例上
+    数据响应式，处理 props、methods、data、computed、watch 等选项
+    解析组件配置项上的 provide 对象，将其挂载到 vm._provided 属性上
+    调用 created 钩子函数
+    如果发现配置项上有 el 选项，则自动调用 $mount 方法，也就是说有了 el 选项，就不需要再手动调用 $mount 方法，反之，没提供 el 选项则必须调用 $mount
+    接下来则进入挂载阶段
+
+/////////////////////////响应式原理
+
+2、Vue 响应式原理是怎么实现的?
+    响应式的核心是通过 Object.defineProperty 对数据的访问和设置进行拦截
+    响应式的数据分为两类：
+      对象，循环遍历对象的所有属性，为每个属性设置 getter、setter，以达到拦截访问和设置的目的，如果属性值依旧为对象，则递归为属性值上的每个 key 设置 getter、setter
+          访问数据时（obj.key)进行依赖收集，在 dep 中存储相关的 watcher
+          设置数据时由 dep 通知相关的 watcher 去更新
+      数组，增强数组的那 7 个可以更改自身的原型方法，然后拦截对这些方法的操作
+          添加新数据时进行响应式处理，然后由 dep 通知 watcher 去更新
+          删除数据时，也要由 dep 通知 watcher 去更新
+
+3、methods、computed 和 watch 有什么区别？
+    使用场景：
+      methods 一般用于封装一些较为复杂的处理逻辑（同步、异步）
+      computed 一般用于封装一些简单的同步逻辑，将经过处理的数据返回，然后显示在模版中，以减轻模版的重量
+      watch 一般用于当需要在数据变化时执行异步或开销较大的操作
+    区别：  
+      <template>
+        <p>{{ computedA }}</p>
+        <p>{{ computedA }}</p>
+        <p>{{ methodsA() }}</p>
+        <p>{{ methodsA() }}</p>
+      </template>
+    主要是methods与computed的区别，在一次渲染中，methods会被多次执行，而computed的回调函数只会执行一次，第二次取第一次缓存的结果
+    computed 和 watch 的本质是一样的，都是通过Watcher 实现，区别主要体现在应用场景上以及computed 默认是懒执行，且不可更改
+
+//////////////异步更新机制////////////////
+
+4、Vue 的异步更新机制是如何实现的？
+    Vue 的异步更新机制的核心是利用了浏览器的异步任务队列来实现的，首选微任务队列，宏任务队列次之。
+    当响应式数据更新后，会调用 dep.notify 方法，通知 dep 中收集的 watcher 去执行 update 方法，watcher.update 将 watcher 自己放入一个 watcher 队列（全局的 queue 数组）。
+    然后通过 nextTick 方法将一个刷新 watcher 队列的方法（flushSchedulerQueue）放入一个全局的 callbacks 数组中。
+    如果此时浏览器的异步任务队列中没有一个叫 flushCallbacks 的函数，则执行 timerFunc 函数，将 flushCallbacks 函数放入异步任务队列。如果异步任务队列中已经存在 flushCallbacks 函数，等待其执行完成以后再放入下一个 flushCallbacks 函数。
+    flushCallbacks 函数负责执行 callbacks 数组中的所有 flushSchedulerQueue 函数。
+    flushSchedulerQueue 函数负责刷新 watcher 队列，即执行 queue 数组中每一个 watcher 的 run 方法，从而进入更新阶段，比如执行组件更新函数或者执行用户 watch 的回调函数。
+
+5、Vue 的 nextTick API 是如何实现的？
+    Vue.nextTick 或者 vm.$nextTick 的原理其实很简单，就做了两件事
+      将传递的回调函数用 try catch 包裹然后放入 callbacks 数组
+      执行 timerFunc 函数，在浏览器的异步任务队列放入一个刷新 callbacks 数组的函数
+
+////////////全局api/////////////
+
+6、Vue.use(plugin) 做了什么？
+    负责安装 plugin 插件，其实就是执行插件提供的 install 方法。
+        首先判断该插件是否已经安装过
+        如果没有，则执行插件提供的 install 方法安装插件，具体做什么有插件自己决定
+
+7、Vue.mixin(options) 做了什么？        
+    负责在 Vue 的全局配置上合并 options 配置。然后在每个组件生成 vnode 时会将全局配置合并到组件自身的配置上来。
+      标准化 options 对象上的 props、inject、directive 选项的格式
+      处理 options 上的 extends 和 mixins，分别将他们合并到全局配置上
+      然后将 options 配置和全局配置进行合并，选项冲突时 options 配置会覆盖全局配置
+
+8、Vue.component(compName, Comp) 做了什么？
+    负责注册全局组件。其实就是将组件配置注册到全局配置的 components 选项上（options.components），然后各个子组件在生成 vnode 时会将全局的 components 选项合并到局部的 components 配置项上。
+      如果第二个参数为空，则表示获取 compName 的组件构造函数
+      如果 Comp 是组件配置对象，则使用 Vue.extend 方法得到组件构造函数，否则直接进行下一步
+      在全局配置上设置组件信息，this.options.components.compName = CompConstructor
+
+9、Vue.directive('my-directive', {xx}) 做了什么？
+    在全局注册 my-directive 指令，然后每个子组件在生成 vnode 时会将全局的 directives 选项合并到局部的 directives 选项中。原理同 Vue.component 方法：
+      如果第二个参数为空，则获取指定指令的配置对象
+      如果不为空，如果第二个参数是一个函数的话，则生成配置对象 { bind: 第二个参数, update: 第二个参数 }
+      然后将指令配置对象设置到全局配置上，this.options.directives['my-directive'] = {xx}
+
+10、Vue.filter('my-filter', function(val) {xx}) 做了什么？
+    负责在全局注册过滤器 my-filter，然后每个子组件在生成 vnode 时会将全局的 filters 选项合并到局部的 filters 选项中。原理是：
+      如果没有提供第二个参数，则获取 my-filter 过滤器的回调函数
+      如果提供了第二个参数，则是设置 this.options.filters['my-filter'] = function(val) {xx}。
+
+11、Vue.extend(options) 做了什么？
+    Vue.extend 基于 Vue 创建一个子类，参数 options 会作为该子类的默认全局配置，就像 Vue 的默认全局配置一样。所以通过 Vue.extend 扩展一个子类，一大用处就是内置一些公共配置，供子类的子类使用。
+      定义子类构造函数，这里和 Vue 一样，也是调用 _init(options)
+      合并 Vue 的配置和 options，如果选项冲突，则 options 的选项会覆盖 Vue 的配置项
+      给子类定义全局 API，值为 Vue 的全局 API，比如 Sub.extend = Super.extend，这样子类同样可以扩展出其它子类
+      返回子类 Sub
+
+12、Vue.set(target, key, val) 做了什么？
+    由于 Vue 无法探测普通的新增 property (比如 this.myObject.newProperty = 'hi')，所以通过 Vue.set 为向响应式对象中添加一个 property，可以确保这个新 property 同样是响应式的，且触发视图更新。
+      更新数组指定下标的元素：Vue.set(array, idx, val)，内部通过 splice 方法实现响应式更新
+      更新对象已有属性：Vue.set(obj, key ,val)，直接更新即可 => obj[key] = val
+      不能向 Vue 实例或者 $data 动态添加根级别的响应式数据
+      Vue.set(obj, key, val)，如果 obj 不是响应式对象，会执行 obj[key] = val，但是不会做响应式处理
+      Vue.set(obj, key, val)，为响应式对象 obj 增加一个新的 key，则通过 defineReactive 方法设置响应式，并触发依赖更新
+
+13、Vue.delete(target, key) 做了什么？
+    删除对象的 property。如果对象是响应式的，确保删除能触发更新视图。这个方法主要用于避开 Vue 不能检测到 property 被删除的限制，但是你应该很少会使用它。当然同样不能删除根级别的响应式属性。 
+      Vue.delete(array, idx)，删除指定下标的元素，内部是通过 splice 方法实现的
+      删除响应式对象上的某个属性：Vue.delete(obj, key)，内部是执行 delete obj.key，然后执行依赖更新即可
+
+14、Vue.nextTick(cb) 做了什么？
+    Vue.nextTick(cb) 方法的作用是延迟回调函数 cb 的执行，一般用于 this.key = newVal 更改数据后，想立即获取更改过后的 DOM 数据，其内部的执行过程是：
+      this.key = 'new val，触发依赖通知更新，将负责更新的 watcher 放入 watcher 队列
+      将刷新 watcher 队列的函数放到 callbacks 数组中
+      在浏览器的异步任务队列中放入一个刷新 callbacks 数组的函数
+      Vue.nextTick(cb) 来插队，将 cb 函数放入 callbacks 数组
+      待将来的某个时刻执行刷新 callbacks 数组的函数
+      然后执行 callbacks 数组中的众多函数，触发 watcher.run 的执行，更新 DOM
+      由于 cb 函数是在后面放到 callbacks 数组，所以这就保证了先完成的 DOM 更新，再执行 cb 函数
+
+////////////////////实例方法
+
+15、vm.$set(obj, key, val) 做了什么？
+    Vue.set 的别名。
+    
+16、vm.$delete(obj, key) 做了什么？
+    是 Vue.delete 的别名。
+
+17、vm.$watch(expOrFn, callback, [options]) 做了什么？
+    vm.$watch 负责观察 Vue 实例上的一个表达式或者一个函数计算结果的变化。当其发生变化时，回调函数就会被执行，并为回调函数传递两个参数，第一个为更新后的新值，第二个为老值。
+    这里需要 注意 一点的是：如果观察的是一个对象，比如：数组，当你用数组方法，比如 push 为数组新增一个元素时，回调函数被触发时传递的新值和老值相同，因为它们指向同一个引用，所以在观察一个对象并且在回调函数中有新老值是否相等的判断时需要注意。
+    vm.$watch 的第一个参数只接收简单的响应式数据的键路径，对于更复杂的表达式建议使用函数作为第一个参数。
+    至于 vm.$watch 的内部原理是：
+      设置 options.user = true，标志是一个用户 watcher
+      实例化一个 Watcher 实例，当检测到数据更新时，通过 watcher 去触发回调函数的执行，并传递新老值作为回调函数的参数
+      返回一个 unwatch 函数，用于取消观察
+
+18、vm.$on(event, callback) 做了什么？
+    监听当前实例上的自定义事件，事件可由 vm.$emit 触发，回调函数会接收所有传入事件触发函数（vm.$emit）的额外参数。
+    vm.$on 的原理很简单，就是处理传递的 event 和 callback 两个参数，将注册的事件和回调函数以键值对的形式存储到 vm._event 对象中，vm._events = { eventName: [cb1, cb2, ...], ... }。
+
+19、vm.$off([event, callback]) 做了什么？
+    移除自定义事件监听器，即移除 vm._events 对象上相关数据。
+    如果果没有提供参数，则移除实例的所有事件监听
+    如果只提供了 event 参数，则移除实例上该事件的所有监听器
+    如果两个参数都提供了，则移除实例上该事件对应的监听器
+
+20、vm.$once(event, callback) 做了什么？
+    监听一个自定义事件，但是该事件只会被触发一次。一旦触发以后监听器就会被移除。
+    其内部的实现原理是：
+      包装用户传递的回调函数，当包装函数执行的时候，除了会执行用户回调函数之外还会执行 vm.$off(event, 包装函数) 移除该事件
+      用 vm.$on(event, 包装函数) 注册事件
+
+21、vm._update(vnode, hydrating) 做了什么？
+    官方文档没有说明该 API，这是一个用于源码内部的实例方法，负责更新页面，是页面渲染的入口，其内部根据是否存在 prevVnode 来决定是首次渲染，还是页面更新，从而在调用 __patch__ 函数时传递不同的参数。该方法在业务开发中不会用到。
+
+22、vm.$forceUpdate() 做了什么？
+    迫使 Vue 实例重新渲染，它仅仅影响组件实例本身和插入插槽内容的子组件，而不是所有子组件。其内部原理到也简单，就是直接调用 vm._watcher.update()，它就是 watcher.update() 方法，执行该方法触发组件更新。
+
+23、vm.$destroy() 做了什么？
+    负责完全销毁一个实例。清理它与其它实例的连接，解绑它的全部指令和事件监听器。在执行过程中会调用 beforeDestroy 和 destroy 两个钩子函数。在大多数业务开发场景下用不到该方法，一般都通过 v-if 指令来操作。
+    其内部原理是：
+      调用 beforeDestroy 钩子函数
+      将自己从父组件（$parent）移除，从而销毁和老爹的关系
+      通过 watcher.teardown() 来移除依赖监听
+      通过 vm.__patch__(vnode, null) 方法来销毁节点
+      调用 destroyed 钩子函数
+      通过 vm.$off 方法移除所有的事件监听
+
+24、vm.$nextTick(cb) 做了什么？
+    是 Vue.nextTick 的别名
+
+25、vm._render 做了什么？
+    官方文档没有提供该方法，它是一个用于源码内部的实例方法，负责生成 vnode。其关键代码就一行，执行 render 函数生成 vnode。不过其中加了大量的异常处理代码。
