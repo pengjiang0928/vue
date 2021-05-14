@@ -90,7 +90,7 @@ function flushSchedulerQueue () {
   /**
    * 刷新队列之前先给队列排序（升序），可以保证：
    *   1、组件的更新顺序为从父级到子级，因为父组件总是在子组件之前被创建
-   *   2、一个组件的用户 watcher 在其渲染 watcher 之前被执行，因为用户 watcher 先于 渲染 watcher 创建
+   *   2、一个组件的user watchers 比render watcher 先执行，因为user watchers 先于 render watcher 创建
    *   3、如果一个组件在其父组件的 watcher 执行期间被销毁，则它的 watcher 可以被跳过
    * 排序以后在刷新队列期间新进来的 watcher 也会按顺序放入队列的合适位置
    */
@@ -111,6 +111,16 @@ function flushSchedulerQueue () {
     // 执行 watcher.run，最终触发更新函数，比如 updateComponent 或者 获取 this.xx（xx 为用户 watch 的第二个参数），当然第二个参数也有可能是一个函数，那就直接执行
     watcher.run()
     // in dev build, check and stop circular updates.
+    /*
+      在测试环境中，检测watch是否在死循环中
+      比如这样一种情况
+      watch: {
+        test () {
+          this.test++;
+        }
+      }
+      持续执行了一百次watch代表可能存在死循环
+    */
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
       circular[id] = (circular[id] || 0) + 1
       if (circular[id] > MAX_UPDATE_COUNT) {

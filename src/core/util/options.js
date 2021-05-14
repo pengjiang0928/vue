@@ -50,11 +50,9 @@ if (process.env.NODE_ENV !== 'production') {
 function mergeData (to: Object, from: ?Object): Object {
   if (!from) return to
   let key, toVal, fromVal
-
   const keys = hasSymbol
     ? Reflect.ownKeys(from)
     : Object.keys(from)
-
   for (let i = 0; i < keys.length; i++) {
     key = keys[i]
     // in case the object is already observed...

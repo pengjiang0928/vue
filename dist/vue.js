@@ -952,13 +952,12 @@
     // 实例化一个 dep
     this.dep = new Dep();
     this.vmCount = 0;
-    // 在 value 对象上设置 __ob__ 属性
+    // 将Observer实例绑定到data的__ob__属性上去
     def(value, '__ob__', this);
     if (Array.isArray(value)) {
       /**
-       * value 为数组
-       * hasProto = '__proto__' in {}
-       * 用于判断对象是否存在 __proto__ 属性，通过 obj.__proto__ 可以访问对象的原型链
+       * value 为时数组 将增强数组原型的七个方法，以便将数组变成响应式
+       * hasProto = '__proto__' in {}检测一个普通对象是否有__proto__属性 obj.__proto__ 指向原型对象
        * 但由于 __proto__ 不是标准属性，所以有些浏览器不支持，比如 IE6-10，Opera10.1
        * 为什么要判断，是因为一会儿要通过 __proto__ 操作数据的原型链
        * 覆盖数组默认的七个原型方法，以实现数组响应式
@@ -966,10 +965,14 @@
       //判断是否有 __proto__ 属性、浏览器差异
       if (hasProto) {
         //重写value的原型链
+        //arrayMethods是增强后的数组原型对象
+        //value.__proto__ = arrayMethods
         protoAugment(value, arrayMethods);
       } else {
         copyAugment(value, arrayMethods, arrayKeys);
       }
+
+      /*需要对数组每一个成员对象进行observe*/
       this.observeArray(value);
     } else {
       // value 为对象，为对象的每个属性（包括嵌套对象）设置响应式
@@ -1035,13 +1038,13 @@
    * Attempt to create an observer instance for a value,
    * returns the new observer if successfully observed,
    * or the existing observer if the value already has one.
-   * 响应式处理的真正入口
-   * 为对象创建观察者实例，如果对象已经被观察过，则返回已有的观察者实例，否则创建新的观察者实例
+   * 
+   * 尝试创建一个Observer实例（__ob__）如果创建成功则返回新创建的Observer实例，如果已有Observer实例则返回
    * @param {*} value 对象 => {}
    */
 
   function observe (value, asRootData) {
-    // 非对象和 VNode 实例不做响应式处理
+    // 非对象!（obj !== null && typeof obj === 'object'）和 VNode 实例不做响应式处理
     if (!isObject(value) || value instanceof VNode) {
       return
     }
@@ -1060,6 +1063,7 @@
       ob = new Observer(value);
     }
     if (asRootData && ob) {
+      /*如果是根数据则计数，后面Observer中的observe的asRootData非true*/
       ob.vmCount++;
     }
     return ob
@@ -1093,14 +1097,17 @@
     if ((!getter || setter) && arguments.length === 2) {
       val = obj[key];
     }
-    // 递归调用，处理 val 即 obj[key] 的值为对象的情况，保证对象中的所有 key 都被观察
+
+    // 对象的子对象递归进行observe并返回子节点的Observer对象
     var childOb = !shallow && observe(val);
+    
     // 响应式核心
     Object.defineProperty(obj, key, {
       enumerable: true,
       configurable: true,
       // get 拦截对 obj[key] 的读取操作
       get: function reactiveGetter () {
+        /*如果原本对象拥有getter方法则执行*/
         var value = getter ? getter.call(obj) : val;
         /**
          * Dep.target 为 Dep 类的一个静态属性，值为 watcher，在实例化 Watcher 时会被设置
@@ -1113,6 +1120,7 @@
           dep.depend();
           // childOb 表示对象中嵌套对象的观察者对象，如果存在也对其进行依赖收集
           if (childOb) {
+            /*子对象进行依赖收集，其实就是将同一个watcher观察者实例放进了两个depend中，一个是正在本身闭包中的depend，另一个是子元素的depend*/
             childOb.dep.depend();
             // 如果是 obj[key] 是 数组，则触发数组响应式
             if (Array.isArray(value)) {
@@ -1125,7 +1133,7 @@
       },
       // set 拦截对 obj[key] 的设置操作
       set: function reactiveSetter (newVal) {
-        // 旧的 obj[key]
+        // 通过getter方法获取当前值，与新值进行比较，一致则不需要执行下面的操作
         var value = getter ? getter.call(obj) : val;
         /* eslint-disable no-self-compare */
         // 如果新老值一样，则直接 return，不跟新更不触发响应式更新过程
@@ -1283,11 +1291,9 @@
   function mergeData (to, from) {
     if (!from) { return to }
     var key, toVal, fromVal;
-
     var keys = hasSymbol
       ? Reflect.ownKeys(from)
       : Object.keys(from);
-
     for (var i = 0; i < keys.length; i++) {
       key = keys[i];
       // in case the object is already observed...
@@ -2031,7 +2037,7 @@
    * 做了三件事：
    *   1、将 pending 置为 false
    *   2、清空 callbacks 数组
-   *   3、执行 callbacks 数组中的每一个函数（flushSchedulerQueue）
+   *   3、执行 callbacks 数组中的每一个函数（flushSchedulerQueue或this.$nextTick传递的函数）
    */
   function flushCallbacks () {
     pending = false;
@@ -4262,6 +4268,7 @@
     el,
     hydrating
   ) {
+    // 在Vue实例对象上添加 $el 属性，指向挂载点元素
     vm.$el = el;
     if (!vm.$options.render) {
       vm.$options.render = createEmptyVNode;
@@ -4283,6 +4290,7 @@
         }
       }
     }
+    // 触发 beforeMount 生命周期钩子
     callHook(vm, 'beforeMount');
 
     var updateComponent;
@@ -4549,7 +4557,7 @@
     /**
      * 刷新队列之前先给队列排序（升序），可以保证：
      *   1、组件的更新顺序为从父级到子级，因为父组件总是在子组件之前被创建
-     *   2、一个组件的用户 watcher 在其渲染 watcher 之前被执行，因为用户 watcher 先于 渲染 watcher 创建
+     *   2、一个组件的user watchers 比render watcher 先执行，因为user watchers 先于 render watcher 创建
      *   3、如果一个组件在其父组件的 watcher 执行期间被销毁，则它的 watcher 可以被跳过
      * 排序以后在刷新队列期间新进来的 watcher 也会按顺序放入队列的合适位置
      */
@@ -4570,6 +4578,16 @@
       // 执行 watcher.run，最终触发更新函数，比如 updateComponent 或者 获取 this.xx（xx 为用户 watch 的第二个参数），当然第二个参数也有可能是一个函数，那就直接执行
       watcher.run();
       // in dev build, check and stop circular updates.
+      /*
+        在测试环境中，检测watch是否在死循环中
+        比如这样一种情况
+        watch: {
+          test () {
+            this.test++;
+          }
+        }
+        持续执行了一百次watch代表可能存在死循环
+      */
       if ( has[id] != null) {
         circular[id] = (circular[id] || 0) + 1;
         if (circular[id] > MAX_UPDATE_COUNT) {
@@ -4945,7 +4963,7 @@
     set: noop
   };
 
-  // 设置代理，将 key 代理到 target 上
+  // 设置代理，将 key 代理到 Vue实例 (target) 上,这样就可以用app.key代替app._data.key了
   function proxy (target, sourceKey, key) {
     sharedPropertyDefinition.get = function proxyGetter () {
       return this[sourceKey][key]
@@ -5072,6 +5090,7 @@
     data = vm._data = typeof data === 'function'
       ? getData(data, vm)
       : data || {};
+      /*对对象类型进行严格检查，只有当对象是纯javascript对象的时候返回true  [object Object]*/
     if (!isPlainObject(data)) {
       data = {};
        warn(
@@ -5088,6 +5107,7 @@
     while (i--) {
       var key = keys[i];
       {
+        //判断与methods是否有重复key
         if (methods && hasOwn(methods, key)) {
           warn(
             ("Method \"" + key + "\" has already been defined as a data property."),
@@ -5095,20 +5115,22 @@
           );
         }
       }
+      //判断与props是否有重复key
       if (props && hasOwn(props, key)) {
          warn(
           "The data property \"" + key + "\" is already declared as a prop. " +
           "Use prop default value instead.",
           vm
         );
-      } else if (!isReserved(key)) {
+      } else if (!isReserved(key)) {  /*判断是否是保留字段*/
         //在对象实例上对数据进行代理
         proxy(vm, "_data", key);
       }
     }
     // observe data
     // 为 data 对象上的数据设置响应式
-    observe(data, true /* asRootData */);
+    // asRootData表示这一步作为根数据
+    var a = observe(data, true /* asRootData */);
   }
 
   function getData (data, vm) {
@@ -5153,10 +5175,10 @@
           vm
         );
       }
-
       if (!isSSR) {
         // create internal watcher for the computed property.
-        // 为 computed 属性创建 watcher 实例
+        // 为 computed 属性创建 watcher 实例,保存在vm实例的_computedWatchers中
+        //这里的computedWatcherOptions参数传递了一个lazy为true，会使得watch实例的dirty为true
         watchers[key] = new Watcher(
           vm,
           getter || noop,
@@ -5407,6 +5429,7 @@
       options
     ) {
       var vm = this;
+      //处理cb是对象的情况
       if (isPlainObject(cb)) {
         return createWatcher(vm, expOrFn, cb, options)
       }
@@ -5861,11 +5884,11 @@
 
 
 
-
+  /* 获取组件名称 */
   function getComponentName (opts) {
     return opts && (opts.Ctor.options.name || opts.tag)
   }
-
+  /* 检测name是否匹配 */
   function matches (pattern, name) {
     if (Array.isArray(pattern)) {
       return pattern.indexOf(name) > -1
@@ -5877,7 +5900,7 @@
     /* istanbul ignore next */
     return false
   }
-
+  /* 修正cache */
   function pruneCache (keepAliveInstance, filter) {
     var cache = keepAliveInstance.cache;
     var keys = keepAliveInstance.keys;
@@ -5892,7 +5915,7 @@
       }
     }
   }
-
+  /* 销毁vnode对应的组件实例（Vue实例） */
   function pruneCacheEntry (
     cache,
     key,
@@ -5909,8 +5932,10 @@
 
   var patternTypes = [String, RegExp, Array];
 
+  /* keep-alive组件 */
   var KeepAlive = {
     name: 'keep-alive',
+    /* 抽象组件 */
     abstract: true,
 
     props: {
@@ -5921,6 +5946,7 @@
 
     methods: {
       cacheVNode: function cacheVNode() {
+        
         var ref = this;
         var cache = ref.cache;
         var keys = ref.keys;
@@ -5946,10 +5972,12 @@
     },
 
     created: function created () {
+      /* 缓存对象 */
       this.cache = Object.create(null);
       this.keys = [];
     },
 
+    /* destroyed钩子中销毁所有cache中的组件实例 */
     destroyed: function destroyed () {
       for (var key in this.cache) {
         pruneCacheEntry(this.cache, key, this.keys);
@@ -5973,6 +6001,8 @@
     },
 
     render: function render () {
+      /* 得到slot插槽中的第一个组件 */
+      // debugger
       var slot = this.$slots.default;
       var vnode = getFirstComponentChild(slot);
       var componentOptions = vnode && vnode.componentOptions;
@@ -9712,6 +9742,7 @@
   Vue.prototype.__patch__ = inBrowser ? patch : noop;
 
   // public mount method
+  //通过 el 获取相应的DOM元素，然后调用 lifecycle.js 文件中的 mountComponent 方法。
   Vue.prototype.$mount = function (
     el,
     hydrating
@@ -12561,14 +12592,18 @@
     return el && el.innerHTML
   });
 
+  // 缓存了来自 web/index.js 的 $mount 方法
   var mount = Vue.prototype.$mount;
+  // 重写 $mount 方法
   Vue.prototype.$mount = function (
     el,
     hydrating
   ) {
+    // 根据 el 获取相应的DOM元素
     el = el && query(el);
 
     /* istanbul ignore if */
+    // 不允许你将 el 挂载到 html 标签或者 body 标签
     if (el === document.body || el === document.documentElement) {
        warn(
         "Do not mount Vue to <html> or <body> - mount to normal elements instead."
@@ -12578,6 +12613,7 @@
 
     var options = this.$options;
     // resolve template/el and convert to render function
+    // 如果我们没有写 render 选项，那么就尝试将 template 或者 el 转化为 render 函数
     if (!options.render) {
       var template = options.template;
       if (template) {
@@ -12628,6 +12664,7 @@
         }
       }
     }
+    // 调用已经缓存下来的 web/index.js 文件中的 $mount 方法
     return mount.call(this, el, hydrating)
   };
 

@@ -161,6 +161,7 @@ export function mountComponent (
   el: ?Element,
   hydrating?: boolean
 ): Component {
+  // 在Vue实例对象上添加 $el 属性，指向挂载点元素
   vm.$el = el
   if (!vm.$options.render) {
     vm.$options.render = createEmptyVNode
@@ -182,6 +183,7 @@ export function mountComponent (
       }
     }
   }
+  // 触发 beforeMount 生命周期钩子
   callHook(vm, 'beforeMount')
 
   let updateComponent

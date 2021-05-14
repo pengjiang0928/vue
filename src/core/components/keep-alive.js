@@ -10,11 +10,11 @@ type CacheEntry = {
 };
 
 type CacheEntryMap = { [key: string]: ?CacheEntry };
-
+/* 获取组件名称 */
 function getComponentName (opts: ?VNodeComponentOptions): ?string {
   return opts && (opts.Ctor.options.name || opts.tag)
 }
-
+/* 检测name是否匹配 */
 function matches (pattern: string | RegExp | Array<string>, name: string): boolean {
   if (Array.isArray(pattern)) {
     return pattern.indexOf(name) > -1
@@ -26,7 +26,7 @@ function matches (pattern: string | RegExp | Array<string>, name: string): boole
   /* istanbul ignore next */
   return false
 }
-
+/* 修正cache */
 function pruneCache (keepAliveInstance: any, filter: Function) {
   const { cache, keys, _vnode } = keepAliveInstance
   for (const key in cache) {
@@ -39,7 +39,7 @@ function pruneCache (keepAliveInstance: any, filter: Function) {
     }
   }
 }
-
+/* 销毁vnode对应的组件实例（Vue实例） */
 function pruneCacheEntry (
   cache: CacheEntryMap,
   key: string,
@@ -56,8 +56,10 @@ function pruneCacheEntry (
 
 const patternTypes: Array<Function> = [String, RegExp, Array]
 
+/* keep-alive组件 */
 export default {
   name: 'keep-alive',
+  /* 抽象组件 */
   abstract: true,
 
   props: {
@@ -68,6 +70,7 @@ export default {
 
   methods: {
     cacheVNode() {
+      
       const { cache, keys, vnodeToCache, keyToCache } = this
       if (vnodeToCache) {
         const { tag, componentInstance, componentOptions } = vnodeToCache
@@ -87,10 +90,12 @@ export default {
   },
 
   created () {
+    /* 缓存对象 */
     this.cache = Object.create(null)
     this.keys = []
   },
 
+  /* destroyed钩子中销毁所有cache中的组件实例 */
   destroyed () {
     for (const key in this.cache) {
       pruneCacheEntry(this.cache, key, this.keys)
@@ -112,6 +117,8 @@ export default {
   },
 
   render () {
+    /* 得到slot插槽中的第一个组件 */
+    // debugger
     const slot = this.$slots.default
     const vnode: VNode = getFirstComponentChild(slot)
     const componentOptions: ?VNodeComponentOptions = vnode && vnode.componentOptions

@@ -46,13 +46,12 @@ export class Observer {
     // 实例化一个 dep
     this.dep = new Dep()
     this.vmCount = 0
-    // 在 value 对象上设置 __ob__ 属性
+    // 将Observer实例绑定到data的__ob__属性上去
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
       /**
-       * value 为数组
-       * hasProto = '__proto__' in {}
-       * 用于判断对象是否存在 __proto__ 属性，通过 obj.__proto__ 可以访问对象的原型链
+       * value 为时数组 将增强数组原型的七个方法，以便将数组变成响应式
+       * hasProto = '__proto__' in {}  检测一个普通对象是否有__proto__属性 obj.__proto__ 指向原型对象
        * 但由于 __proto__ 不是标准属性，所以有些浏览器不支持，比如 IE6-10，Opera10.1
        * 为什么要判断，是因为一会儿要通过 __proto__ 操作数据的原型链
        * 覆盖数组默认的七个原型方法，以实现数组响应式
@@ -60,10 +59,14 @@ export class Observer {
       //判断是否有 __proto__ 属性、浏览器差异
       if (hasProto) {
         //重写value的原型链
+        //arrayMethods是增强后的数组原型对象
+        //value.__proto__ = arrayMethods
         protoAugment(value, arrayMethods)
       } else {
         copyAugment(value, arrayMethods, arrayKeys)
       }
+
+      /*需要对数组每一个成员对象进行observe*/
       this.observeArray(value)
     } else {
       // value 为对象，为对象的每个属性（包括嵌套对象）设置响应式
@@ -130,13 +133,13 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * Attempt to create an observer instance for a value,
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
- * 响应式处理的真正入口
- * 为对象创建观察者实例，如果对象已经被观察过，则返回已有的观察者实例，否则创建新的观察者实例
+ * 
+ * 尝试创建一个Observer实例（__ob__）如果创建成功则返回新创建的Observer实例，如果已有Observer实例则返回
  * @param {*} value 对象 => {}
  */
 
 export function observe (value: any, asRootData: ?boolean): Observer | void {
-  // 非对象和 VNode 实例不做响应式处理
+  // 非对象!（obj !== null && typeof obj === 'object'）和 VNode 实例不做响应式处理
   if (!isObject(value) || value instanceof VNode) {
     return
   }
@@ -155,6 +158,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
     ob = new Observer(value)
   }
   if (asRootData && ob) {
+    /*如果是根数据则计数，后面Observer中的observe的asRootData非true*/
     ob.vmCount++
   }
   return ob
@@ -188,14 +192,17 @@ export function defineReactive (
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key]
   }
-  // 递归调用，处理 val 即 obj[key] 的值为对象的情况，保证对象中的所有 key 都被观察
+
+  // 对象的子对象递归进行observe并返回子节点的Observer对象
   let childOb = !shallow && observe(val)
+  
   // 响应式核心
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
     // get 拦截对 obj[key] 的读取操作
     get: function reactiveGetter () {
+      /*如果原本对象拥有getter方法则执行*/
       const value = getter ? getter.call(obj) : val
       /**
        * Dep.target 为 Dep 类的一个静态属性，值为 watcher，在实例化 Watcher 时会被设置
@@ -208,6 +215,7 @@ export function defineReactive (
         dep.depend()
         // childOb 表示对象中嵌套对象的观察者对象，如果存在也对其进行依赖收集
         if (childOb) {
+          /*子对象进行依赖收集，其实就是将同一个watcher观察者实例放进了两个depend中，一个是正在本身闭包中的depend，另一个是子元素的depend*/
           childOb.dep.depend()
           // 如果是 obj[key] 是 数组，则触发数组响应式
           if (Array.isArray(value)) {
@@ -220,7 +228,7 @@ export function defineReactive (
     },
     // set 拦截对 obj[key] 的设置操作
     set: function reactiveSetter (newVal) {
-      // 旧的 obj[key]
+      // 通过getter方法获取当前值，与新值进行比较，一致则不需要执行下面的操作
       const value = getter ? getter.call(obj) : val
       /* eslint-disable no-self-compare */
       // 如果新老值一样，则直接 return，不跟新更不触发响应式更新过程

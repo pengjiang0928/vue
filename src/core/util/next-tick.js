@@ -14,7 +14,7 @@ let pending = false
  * 做了三件事：
  *   1、将 pending 置为 false
  *   2、清空 callbacks 数组
- *   3、执行 callbacks 数组中的每一个函数（flushSchedulerQueue）
+ *   3、执行 callbacks 数组中的每一个函数（flushSchedulerQueue或this.$nextTick传递的函数）
  */
 function flushCallbacks () {
   pending = false

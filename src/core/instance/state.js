@@ -36,7 +36,7 @@ const sharedPropertyDefinition = {
   set: noop
 }
 
-// 设置代理，将 key 代理到 target 上
+// 设置代理，将 key 代理到 Vue实例 (target) 上,这样就可以用app.key代替app._data.key了
 export function proxy (target: Object, sourceKey: string, key: string) {
   sharedPropertyDefinition.get = function proxyGetter () {
     return this[sourceKey][key]
@@ -164,6 +164,7 @@ function initData (vm: Component) {
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
+    /*对对象类型进行严格检查，只有当对象是纯javascript对象的时候返回true  [object Object]*/
   if (!isPlainObject(data)) {
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
@@ -180,6 +181,7 @@ function initData (vm: Component) {
   while (i--) {
     const key = keys[i]
     if (process.env.NODE_ENV !== 'production') {
+      //判断与methods是否有重复key
       if (methods && hasOwn(methods, key)) {
         warn(
           `Method "${key}" has already been defined as a data property.`,
@@ -187,20 +189,22 @@ function initData (vm: Component) {
         )
       }
     }
+    //判断与props是否有重复key
     if (props && hasOwn(props, key)) {
       process.env.NODE_ENV !== 'production' && warn(
         `The data property "${key}" is already declared as a prop. ` +
         `Use prop default value instead.`,
         vm
       )
-    } else if (!isReserved(key)) {
+    } else if (!isReserved(key)) {  /*判断是否是保留字段*/
       //在对象实例上对数据进行代理
       proxy(vm, `_data`, key);
     }
   }
   // observe data
   // 为 data 对象上的数据设置响应式
-  observe(data, true /* asRootData */)
+  // asRootData表示这一步作为根数据
+  let a = observe(data, true /* asRootData */)
 }
 
 export function getData (data: Function, vm: Component): any {
@@ -245,10 +249,10 @@ function initComputed (vm: Component, computed: Object) {
         vm
       )
     }
-
     if (!isSSR) {
       // create internal watcher for the computed property.
-      // 为 computed 属性创建 watcher 实例
+      // 为 computed 属性创建 watcher 实例,保存在vm实例的_computedWatchers中
+      //这里的computedWatcherOptions参数传递了一个lazy为true，会使得watch实例的dirty为true
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -499,6 +503,7 @@ export function stateMixin (Vue: Class<Component>) {
     options?: Object
   ): Function {
     const vm: Component = this
+    //处理cb是对象的情况
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)
     }

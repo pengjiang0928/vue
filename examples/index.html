@@ -8,134 +8,58 @@
 </head>
 <body>
   <div id="app">
-    <!-- <h1>{{ a }}</h1>
-    <ul>
-      <li v-for="li in b" :key="li">{{ li }}</li>
-    </ul> -->
+    <button @click="changeType">切换</button>
+    <keep-alive>
+      <component :is="view"></component>
+    </keep-alive>
   </div>
   <script src="../dist/vue.js"></script>
-  <!-- <script>
-    class Dep {
-      static target = null;
-      constructor () {
-        this.subs = []
-      }
-
-      depend () {
-        this.subs.push(Dep.target)
-      }
-
-      notify () {
-        for (let i = 0; i < this.subs.length; i++) {
-          this.subs[i].fn()
-        }
-      }
-    }
-
-    // Dep.target = null
-    
-    function pushTaeget (watch) {
-      Dep.target = watch;
-    }
-
-    const bailRE = /[^\w.$]/
-    function parsePath (path) {
-      if (bailRE.test(path)) {
-        return
-      }
-      const segments = path.split('.')
-      return function (obj) {
-        for (let i = 0; i < segments.length; i++) {
-          if (!obj) return
-          obj = obj[segments[i]]
-        }
-        return obj
-      }
-    }
-    class Watch {
-      constructor(exp,fn) {
-        this.key = exp;
-        this.fn = fn;
-        pushTaeget(this);
-        parsePath(exp).call(data,data) 
-      }
-    }
-
-    class Observer {
-      constructor(data) {
-        this.walk(data)
-      }
-      walk(data) {
-        let keys = Object.keys(data);
-        for(let i = 0; i < keys.length; i++) {
-          defineReactive(data, keys[i], data[keys[i]])
-        }
-      }
-    }
-
-    function defineReactive (data, key, val) {
-      observer(val)
-      let dep = new Dep();
-      Object.defineProperty(data, key, {
-        enumerable: true,
-        configurable: true,
-        get:function () {
-          dep.depend()
-          return val
-        },
-        set: function (newVal) {
-          if(val === newVal) {
-            return
-          }
-          val = newVal;
-          observer(newVal);
-          dep.notify()
-        }
-      })
-    }
-
-    function observer (data) {
-      if(Object.prototype.toString.call(data) !== '[object Object]') {
-          return
-      }
-      new Observer(data)
-    } 
-
-    var data = {
-      a:1,
-      b: {
-        c:2
-      }
-    }
-    observer(data);
-    new Watch('a', () => {
-      console.log(9)
-    })
-
-    new Watch('a', () => {
-      console.log(90)
-    })
-
-    new Watch('b', () => {
-      console.log(80)
-    })
-
-    new Watch('b.c', () => {
-      console.log(100)
-    })
-  </script> -->
-
   <script>
-    var app = new Vue({
+    Vue.component('acomponent',{
+      name:'acomponent',
+      data() {
+        return {
+          name : ''
+        }
+      },
+      
+      template: `<div>
+                   <h1>acomponent</h1> 
+                  <input v-model="name" />  
+                </div>`
+    })
+
+    Vue.component('bcomponent',{
+      name:'bcomponent',
+      data() {
+        return {
+          age : ''
+        }
+      },
+      template: `<div>
+                   <h1>bcomponent</h1> 
+                  <input v-model="age" />  
+                </div>`
+    })
+
+    var app = new Vue ({
       el:'#app',
       data: {
+        view:'acomponent',
         a: 1,
-        b: [1, 2, 3]
+        b: [2, 3, 4],
+        c: {
+            d: 5
+          }
       },
-      // props: {
-      //   name:{
-      //     default:'sas'
-      //   }
+      methods: {
+        changeType() {
+          this.view = this.view == 'acomponent' ? 'bcomponent' : 'acomponent'
+        }
+      }
+      // components: {
+      //   acomponent,
+      //   bcomponent
       // }
     })
   </script>
