@@ -1108,6 +1108,9 @@
       // get 拦截对 obj[key] 的读取操作
       get: function reactiveGetter () {
         /*如果原本对象拥有getter方法则执行*/
+        if(key === 'asaaaaaa') {
+          debugger
+        }
         var value = getter ? getter.call(obj) : val;
         /**
          * Dep.target 为 Dep 类的一个静态属性，值为 watcher，在实例化 Watcher 时会被设置

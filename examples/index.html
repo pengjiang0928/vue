@@ -1,67 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
 </head>
+
 <body>
-  <div id="app">
-    <button @click="changeType">切换</button>
-    <keep-alive>
-      <component :is="view"></component>
-    </keep-alive>
-  </div>
+  <div id="app"></div>
   <script src="../dist/vue.js"></script>
+
   <script>
-    Vue.component('acomponent',{
-      name:'acomponent',
-      data() {
+    const componentA = {
+      inheritAttrs:false,
+      data:function () {
         return {
-          name : ''
+          age: 'child'
         }
       },
-      
-      template: `<div>
-                   <h1>acomponent</h1> 
-                  <input v-model="name" />  
-                </div>`
-    })
+      mounted:function () {
+        console.log(this.$attrs);
+        console.log(this.$listeners);
+      },
+      props: ['label', 'value'],
+      computed: {
+        inputEventListeners: function () {
+          const vm = this;
+          return Object.assign({},
+          this.$listeners,
+          {
+            input: function (event) {
+              vm.$emit('input', event.target.value)
+            }
+          })
+        }
+      },
+      template:`<label>
+      {{ label }}
+      <input
+        v-bind="$attrs"
+        v-bind:value="value"
+        v-on="inputEventListeners"
+      >
+    </label>`
+    }
 
-    Vue.component('bcomponent',{
-      name:'bcomponent',
-      data() {
+    const componentB = {
+      data: function () {
         return {
-          age : ''
+          sex:'男'
+        }
+      },
+      props: ['count'],
+      methods: {
+        add: function () {
+          this.$emit('update:count', this.count+1)
         }
       },
       template: `<div>
-                   <h1>bcomponent</h1> 
-                  <input v-model="age" />  
-                </div>`
-    })
 
-    var app = new Vue ({
-      el:'#app',
-      data: {
-        view:'acomponent',
-        a: 1,
-        b: [2, 3, 4],
-        c: {
-            d: 5
-          }
+                  <p><button @click="add"><slot>Click</slot></button></p>
+                  <p> {{ count }} </p>
+                 </div>`
+    }
+
+    const app = new Vue({
+      el: '#app',
+      data: function() {
+        return {
+          username: '',
+          count:0,
+        }
+      },
+
+      components: {
+        componentA,
+        componentB
       },
       methods: {
-        changeType() {
-          this.view = this.view == 'acomponent' ? 'bcomponent' : 'acomponent'
+        test: function () {
+          console.log(this.$refs.child.$el.attributes);
+        },
+        focus() {
+          console.log('111');
         }
-      }
-      // components: {
-      //   acomponent,
-      //   bcomponent
-      // }
+      },
+      template:`<div>
+                    <p><button @click="test">zzzz</button></p>
+                    <component-a v-model="username" label="inheritAttrs" required placeholder="Enter your username"  ref="child" @focus="focus"/>
+                    <component-b :count.sync="count" ></component-b>
+                 </div>`
     })
   </script>
 </body>
+
 </html>
