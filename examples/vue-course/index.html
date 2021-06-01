@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script src="../../dist/vue.js"></script>
+
+  <script>
+    const componentA = {
+      //  不希望组件的根元素继承 attribute
+      //  这样，当子组件传入非props属性时，该属性不会渲染到子组件的根元素上
+      //  配合$attrs使用时撰写基础组件经常会用到
+      //  参见下面的例子
+      inheritAttrs: false,
+      data: function () {
+        return {
+          age: 'child'
+        }
+      },
+      mounted: function () {
+        console.log(this.$attrs);
+        console.log(this.$listeners);
+      },
+      props: ['label', 'value'],
+      computed: {
+        inputEventListeners: function () {
+          const vm = this;
+          // `Object.assign` 将所有的对象合并为一个新对象
+          return Object.assign({},
+            // 我们从父级添加所有的监听器
+            // 或覆写一些监听器的行为
+            this.$listeners, {
+              // 这里确保组件配合 `v-model` 的工作
+              input: function (event) {
+                vm.$emit('input', event.target.value)
+              }
+            })
+        }
+      },
+      template: `<label>
+      {{ label }}
+      <input
+        v-bind="$attrs"
+        v-bind:value="value"
+        v-on="inputEventListeners"
+      >
+    </label>`
+    }
+
+    const componentB = {
+      data: function () {
+        return {
+          user: {
+            firstName: 'Jim',
+            lastName: 'Bob'
+          }
+        }
+      },
+      props: ['count'],
+      methods: {
+        add: function () {
+          this.$emit('update:count', this.count + 1)
+        }
+      },
+      template: `<div>
+                  <p><button @click="add"><slot :user="user">{{ user.firstName }}</slot></button></p>
+                  <p> {{ count }} </p>
+                 </div>`
+    }
+
+    const componentC = {
+      inject: ['name'],
+      template:`
+                <div>componentc:{{ name }}</div>
+               `
+    }
+    const app = new Vue({
+      el: '#app',
+      provide: function () {
+        return {
+          name: this.username
+        }
+      },
+      data: function () {
+        return {
+          username: '13',
+          count: 0,
+        }
+      },
+
+      components: {
+        componentA,
+        componentB,
+        componentC
+      },
+      methods: {
+        test: function () {
+          console.log(this.$refs.child.$el.attributes);
+        },
+        focus() {
+          console.log('111');
+        }
+      },
+      template: `<div>
+                    <p><button @click="test">zzzz</button></p>
+                    <component-a v-model="username" label="inheritAttrs" required placeholder="Enter your username"  ref="child" @focus="focus"/>
+                    <component-b :count.sync="count" >
+                      <template v-slot="slotProps">
+                        <span style="color:red">{{ slotProps.user.lastName }}</span>
+                      </template>
+                    </component-b>
+                    <component-c />
+                 </div>`
+    })
+
+  </script>
+</body>
+
+</html>
