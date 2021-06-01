@@ -790,29 +790,29 @@
     componentOptions,
     asyncFactory
   ) {
-    this.tag = tag;
-    this.data = data;
-    this.children = children;
-    this.text = text;
-    this.elm = elm;
-    this.ns = undefined;
-    this.context = context;
-    this.fnContext = undefined;
-    this.fnOptions = undefined;
-    this.fnScopeId = undefined;
-    this.key = data && data.key;
-    this.componentOptions = componentOptions;
-    this.componentInstance = undefined;
-    this.parent = undefined;
-    this.raw = false;
-    this.isStatic = false;
-    this.isRootInsert = true;
-    this.isComment = false;
-    this.isCloned = false;
-    this.isOnce = false;
-    this.asyncFactory = asyncFactory;
-    this.asyncMeta = undefined;
-    this.isAsyncPlaceholder = false;
+    this.tag = tag; // 标签名 
+    this.data = data; // 属性 如id,class
+    this.children = children; // 子节点
+    this.text = text; // 文本内容
+    this.elm = elm; // 所对应的真实节点
+    this.ns = undefined; // 节点的namespace
+    this.context = context; // 该vnode对应的实例
+    this.fnContext = undefined; // 函数组件上下文
+    this.fnOptions = undefined; // 函数组件配置
+    this.fnScopeId = undefined; //函数组件的scopeId
+    this.key = data && data.key; // 节点绑定的key 如v-for
+    this.componentOptions = componentOptions; // 组件VNode的options
+    this.componentInstance = undefined; // 组件的实例
+    this.parent = undefined; // vnode组件的占位符节点
+    this.raw = false; // 是否为平台标签或文本
+    this.isStatic = false; // 静态节点
+    this.isRootInsert = true; // 是否作为根节点插入
+    this.isComment = false; //是否是注释节点
+    this.isCloned = false; // 是否是克隆节点
+    this.isOnce = false; // 是否是v-once节点
+    this.asyncFactory = asyncFactory; //异步工厂方法
+    this.asyncMeta = undefined; // 异步meta
+    this.isAsyncPlaceholder = false; //是否为异步占位符
   };
 
   var prototypeAccessors = { child: { configurable: true } };
@@ -825,6 +825,8 @@
 
   Object.defineProperties( VNode.prototype, prototypeAccessors );
 
+  //  注释节点
+  //  创建一个空的Vnode,有效属性只有text和isComment来表示一个注释节点
   var createEmptyVNode = function (text) {
     if ( text === void 0 ) text = '';
 
@@ -834,6 +836,8 @@
     return node
   };
 
+  //  文本节点
+  //  只设置text属性、描述的是标签内的文本
   function createTextVNode (val) {
     return new VNode(undefined, undefined, undefined, String(val))
   }
@@ -842,6 +846,10 @@
   // used for static nodes and slot nodes because they may be reused across
   // multiple renders, cloning them avoids errors when DOM manipulations rely
   // on their elm reference.
+  //  优化浅克隆
+  // 用于静态节点和插槽节点，因为它们可以跨多个应用程序重用
+  // 多个渲染，克隆它们可以避免DOM操作依赖于
+  // 它们的元素引用。
   function cloneVNode (vnode) {
     var cloned = new VNode(
       vnode.tag,
@@ -3595,16 +3603,16 @@
       data.scopedSlots = { default: children[0] };
       children.length = 0;
     }
-    if (normalizationType === ALWAYS_NORMALIZE) {
-      children = normalizeChildren(children);
-    } else if (normalizationType === SIMPLE_NORMALIZE) {
+    if (normalizationType === ALWAYS_NORMALIZE) { // 手写的render函数
+      children = normalizeChildren(children); 
+    } else if (normalizationType === SIMPLE_NORMALIZE) { // 编译产生的render函数
       children = simpleNormalizeChildren(children);
     }
     var vnode, ns;
     if (typeof tag === 'string') {
       var Ctor;
       ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag);
-      if (config.isReservedTag(tag)) {
+      if (config.isReservedTag(tag)) { // 标签
         // platform built-in elements
         if ( isDef(data) && isDef(data.nativeOn) && data.tag !== 'component') {
           warn(
@@ -3616,7 +3624,7 @@
           config.parsePlatformTagName(tag), data, children,
           undefined, undefined, context
         );
-      } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
+      } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) { //  组件
         // component
         vnode = createComponent(Ctor, data, context, children, tag);
       } else {
@@ -3726,7 +3734,6 @@
       var ref = vm.$options;
       var render = ref.render;
       var _parentVnode = ref._parentVnode;
-
       if (_parentVnode) {
         vm.$scopedSlots = normalizeScopedSlots(
           _parentVnode.data.scopedSlots,
@@ -3748,6 +3755,7 @@
         currentRenderingInstance = vm;
         // 执行 render 函数，生成 vnode
         vnode = render.call(vm._renderProxy, vm.$createElement);
+        console.log('vnodevnode',vnode);
       } catch (e) {
         handleError(e, vm, "render");
         // 到这儿，说明执行 render 函数时出错了
@@ -5495,8 +5503,9 @@
         *   1、Vue.component 方法注册的全局组件在注册时做了选项合并
         *   2、{ components: { xx } } 方式注册的局部组件在执行编译器生成的 render 函数时做了选项合并，包括根组件中的 components 配置
         */
-        vm.$options = mergeOptions(
-          resolveConstructorOptions(vm.constructor),  //返回Vue.options
+       var a = resolveConstructorOptions(vm.constructor);
+       vm.$options = mergeOptions(
+          resolveConstructorOptions(vm.constructor),  //静态属性Vue.options
           options || {},
           vm //this
         );
@@ -5632,7 +5641,6 @@
     // 调用 Vue.prototype._init 方法，该方法是在 initMixin 中定义的
     this._init(options);
   }
-
   //在Vue的原型prototype上挂载方法或者属性,包括Vue.prototype._init方法
   initMixin(Vue);
 
@@ -6104,6 +6112,8 @@
       observe(obj);
       return obj
     };
+
+    
     // Vue.options.compoents/directives/filter
     Vue.options = Object.create(null);
     ASSET_TYPES.forEach(function (type) {
@@ -11668,7 +11678,6 @@
     if (el.parent) {
       el.pre = el.pre || el.parent.pre;
     }
-
     if (el.staticRoot && !el.staticProcessed) {
       return genStatic(el, state)
     } else if (el.once && !el.onceProcessed) {
@@ -12557,6 +12566,7 @@
     options
   ) {
     var ast = parse(template.trim(), options);
+    console.log(ast);
     if (options.optimize !== false) {
       optimize(ast, options);
     }
@@ -12616,11 +12626,14 @@
 
     var options = this.$options;
     // resolve template/el and convert to render function
-    // 如果我们没有写 render 选项，那么就尝试将 template 或者 el 转化为 render 函数
+    // 如果我们没有写 自己写render 选项，那么就尝试将 template 或者 el 转化为 render 函数
     if (!options.render) {
       var template = options.template;
       if (template) {
         if (typeof template === 'string') {
+          // 处理script标签存放html的情况
+          // <script type="text/x-template" id="item-template"></script>
+          // template: '#item-template'
           if (template.charAt(0) === '#') {
             template = idToTemplate(template);
             /* istanbul ignore if */
@@ -12657,6 +12670,8 @@
         }, this);
         var render = ref.render;
         var staticRenderFns = ref.staticRenderFns;
+        
+        // 在vm.$options上挂载render方法
         options.render = render;
         options.staticRenderFns = staticRenderFns;
 

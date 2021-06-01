@@ -73,7 +73,6 @@ export function renderMixin (Vue: Class<Component>) {
   Vue.prototype._render = function (): VNode {
     const vm: Component = this
     const { render, _parentVnode } = vm.$options
-
     if (_parentVnode) {
       vm.$scopedSlots = normalizeScopedSlots(
         _parentVnode.data.scopedSlots,
@@ -95,6 +94,7 @@ export function renderMixin (Vue: Class<Component>) {
       currentRenderingInstance = vm
       // 执行 render 函数，生成 vnode
       vnode = render.call(vm._renderProxy, vm.$createElement)
+      console.log('vnodevnode',vnode);
     } catch (e) {
       handleError(e, vm, `render`)
       // 到这儿，说明执行 render 函数时出错了

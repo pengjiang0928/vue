@@ -35,11 +35,14 @@ Vue.prototype.$mount = function (
 
   const options = this.$options
   // resolve template/el and convert to render function
-  // 如果我们没有写 render 选项，那么就尝试将 template 或者 el 转化为 render 函数
+  // 如果我们没有写 自己写render 选项，那么就尝试将 template 或者 el 转化为 render 函数
   if (!options.render) {
     let template = options.template
     if (template) {
       if (typeof template === 'string') {
+        // 处理script标签存放html的情况
+        // <script type="text/x-template" id="item-template"></script>
+        // template: '#item-template'
         if (template.charAt(0) === '#') {
           template = idToTemplate(template)
           /* istanbul ignore if */
@@ -74,6 +77,8 @@ Vue.prototype.$mount = function (
         delimiters: options.delimiters,
         comments: options.comments
       }, this)
+      
+      // 在vm.$options上挂载render方法
       options.render = render
       options.staticRenderFns = staticRenderFns
 

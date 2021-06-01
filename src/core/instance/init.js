@@ -49,8 +49,8 @@ export function initMixin (Vue: Class<Component>) {
       *   1、Vue.component 方法注册的全局组件在注册时做了选项合并
       *   2、{ components: { xx } } 方式注册的局部组件在执行编译器生成的 render 函数时做了选项合并，包括根组件中的 components 配置
       */
-      vm.$options = mergeOptions(
-        resolveConstructorOptions(vm.constructor),  //返回Vue.options
+     vm.$options = mergeOptions(
+        resolveConstructorOptions(vm.constructor),  //静态属性Vue.options
         options || {},
         vm //this
       )

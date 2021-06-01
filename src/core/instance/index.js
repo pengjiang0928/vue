@@ -15,7 +15,6 @@ function Vue (options) {
   // 调用 Vue.prototype._init 方法，该方法是在 initMixin 中定义的
   this._init(options)
 }
-
 //在Vue的原型prototype上挂载方法或者属性,包括Vue.prototype._init方法
 initMixin(Vue)
 
@@ -52,5 +51,4 @@ lifecycleMixin(Vue)
  *   Vue.prototype._render
  */
 renderMixin(Vue)
-// console.log(Vue.prototype);
 export default Vue

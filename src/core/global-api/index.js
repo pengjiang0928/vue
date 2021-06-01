@@ -67,6 +67,8 @@ export function initGlobalAPI (Vue: GlobalAPI) {
     observe(obj)
     return obj
   }
+
+  
   // Vue.options.compoents/directives/filter
   Vue.options = Object.create(null)
   ASSET_TYPES.forEach(type => {
