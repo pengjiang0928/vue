@@ -1116,9 +1116,6 @@
       // get 拦截对 obj[key] 的读取操作
       get: function reactiveGetter () {
         /*如果原本对象拥有getter方法则执行*/
-        if(key === 'asaaaaaa') {
-          debugger
-        }
         var value = getter ? getter.call(obj) : val;
         /**
          * Dep.target 为 Dep 类的一个静态属性，值为 watcher，在实例化 Watcher 时会被设置
@@ -3755,7 +3752,7 @@
         currentRenderingInstance = vm;
         // 执行 render 函数，生成 vnode
         vnode = render.call(vm._renderProxy, vm.$createElement);
-        console.log('vnodevnode',vnode);
+        // console.log('vnodevnode',vnode);
       } catch (e) {
         handleError(e, vm, "render");
         // 到这儿，说明执行 render 函数时出错了
@@ -5503,7 +5500,6 @@
         *   1、Vue.component 方法注册的全局组件在注册时做了选项合并
         *   2、{ components: { xx } } 方式注册的局部组件在执行编译器生成的 render 函数时做了选项合并，包括根组件中的 components 配置
         */
-       var a = resolveConstructorOptions(vm.constructor);
        vm.$options = mergeOptions(
           resolveConstructorOptions(vm.constructor),  //静态属性Vue.options
           options || {},
@@ -6918,7 +6914,10 @@
           oldEndVnode = oldCh[--oldEndIdx];
           newStartVnode = newCh[++newStartIdx];
         } else {
+          // 构造一个key=>index映射，键为老节点的key值
           if (isUndef(oldKeyToIdx)) { oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx); }
+          // 如果新前节点有key属性，那么可以通过key直接映到老节点下标;否则就需要遍历查找
+          // 这也是为什么推荐列表组件带唯一key值，为了当新旧节点交叉对比没有对比结果时，更快地查找
           idxInOld = isDef(newStartVnode.key)
             ? oldKeyToIdx[newStartVnode.key]
             : findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx);
@@ -6967,6 +6966,7 @@
     function findIdxInOld (node, oldCh, start, end) {
       for (var i = start; i < end; i++) {
         var c = oldCh[i];
+        // 对比新旧节点是否相同
         if (isDef(c) && sameVnode(node, c)) { return i }
       }
     }
@@ -12566,7 +12566,6 @@
     options
   ) {
     var ast = parse(template.trim(), options);
-    console.log(ast);
     if (options.optimize !== false) {
       optimize(ast, options);
     }

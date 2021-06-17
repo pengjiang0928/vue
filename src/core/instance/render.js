@@ -94,7 +94,7 @@ export function renderMixin (Vue: Class<Component>) {
       currentRenderingInstance = vm
       // 执行 render 函数，生成 vnode
       vnode = render.call(vm._renderProxy, vm.$createElement)
-      console.log('vnodevnode',vnode);
+      // console.log('vnodevnode',vnode);
     } catch (e) {
       handleError(e, vm, `render`)
       // 到这儿，说明执行 render 函数时出错了

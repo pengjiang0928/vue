@@ -445,7 +445,10 @@ export function createPatchFunction (backend) {
         oldEndVnode = oldCh[--oldEndIdx]
         newStartVnode = newCh[++newStartIdx]
       } else {
+        // 构造一个key=>index映射，键为老节点的key值
         if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
+        // 如果新前节点有key属性，那么可以通过key直接映到老节点下标;否则就需要遍历查找
+        // 这也是为什么推荐列表组件带唯一key值，为了当新旧节点交叉对比没有对比结果时，更快地查找
         idxInOld = isDef(newStartVnode.key)
           ? oldKeyToIdx[newStartVnode.key]
           : findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx)
@@ -494,6 +497,7 @@ export function createPatchFunction (backend) {
   function findIdxInOld (node, oldCh, start, end) {
     for (let i = start; i < end; i++) {
       const c = oldCh[i]
+      // 对比新旧节点是否相同
       if (isDef(c) && sameVnode(node, c)) return i
     }
   }
